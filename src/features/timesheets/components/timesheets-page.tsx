@@ -15,8 +15,8 @@ import type { DateRangeFilter, TimesheetStatus } from "@/types";
 const rangeOptions: Array<{ label: string; value: DateRangeFilter }> = [
   { label: "Date Range", value: "all" },
   { label: "January 2024", value: "january" },
-  { label: "1 - 19 January, 2024", value: "jan-1-19" },
-  { label: "20 January - 2 February, 2024", value: "jan-20-feb-2" },
+  { label: "1-19 January, 2024", value: "jan-1-19" },
+  { label: "20 January-2 February, 2024", value: "jan-20-feb-2" },
 ];
 
 const statusOptions: Array<{ label: string; value: "all" | TimesheetStatus }> =

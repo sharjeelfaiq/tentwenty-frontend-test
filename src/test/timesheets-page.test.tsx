@@ -150,9 +150,9 @@ describe("TimesheetsPage", () => {
       rawTimesheets: [
         {
           id: "detail-jan-21",
-          weekNumber: 3,
-          dateLabel: "21 - 26 January, 2024",
-          rangeStart: "2024-01-21",
+          weekNumber: 4,
+          dateLabel: "22-26 January, 2024",
+          rangeStart: "2024-01-22",
           rangeEnd: "2024-01-26",
           status: "INCOMPLETE",
           totalHours: 20,
@@ -162,9 +162,9 @@ describe("TimesheetsPage", () => {
       paginatedTimesheets: [
         {
           id: "detail-jan-21",
-          weekNumber: 3,
-          dateLabel: "21 - 26 January, 2024",
-          rangeStart: "2024-01-21",
+          weekNumber: 4,
+          dateLabel: "22-26 January, 2024",
+          rangeStart: "2024-01-22",
           rangeEnd: "2024-01-26",
           status: "INCOMPLETE",
           totalHours: 20,
@@ -174,7 +174,7 @@ describe("TimesheetsPage", () => {
     });
 
     render(<TimesheetsPage />);
-    expect(screen.getByText("21 - 26 January, 2024")).toBeInTheDocument();
+    expect(screen.getByText("22-26 January, 2024")).toBeInTheDocument();
     expect(screen.getByText("Update")).toBeInTheDocument();
   });
 
@@ -184,11 +184,11 @@ describe("TimesheetsPage", () => {
 
     render(<TimesheetsPage />);
 
-    expect(screen.queryByText("5 - 9 February, 2024")).not.toBeInTheDocument();
+    expect(screen.queryByText("5-9 February, 2024")).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Rows per page" }), "10");
 
-    await waitFor(() => expect(screen.getByText("5 - 9 February, 2024")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("5-9 February, 2024")).toBeInTheDocument());
   });
 
   it("allows selecting 5 rows per page after switching to 10", async () => {
@@ -200,10 +200,10 @@ describe("TimesheetsPage", () => {
     const rowsPerPage = screen.getByRole("combobox", { name: "Rows per page" });
 
     await user.selectOptions(rowsPerPage, "10");
-    await waitFor(() => expect(screen.getByText("5 - 9 February, 2024")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("5-9 February, 2024")).toBeInTheDocument());
 
     await user.selectOptions(rowsPerPage, "5");
-    await waitFor(() => expect(screen.queryByText("5 - 9 February, 2024")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText("5-9 February, 2024")).not.toBeInTheDocument());
   });
 
   it("renders only the first 5 rows on the initial dashboard view", () => {
@@ -211,9 +211,9 @@ describe("TimesheetsPage", () => {
 
     render(<TimesheetsPage />);
 
-    expect(screen.getByText("1 - 5 January, 2024")).toBeInTheDocument();
-    expect(screen.getByText("28 January - 1 February, 2024")).toBeInTheDocument();
-    expect(screen.queryByText("5 - 9 February, 2024")).not.toBeInTheDocument();
+    expect(screen.getByText("1-5 January, 2024")).toBeInTheDocument();
+    expect(screen.getByText("29 January-2 February, 2024")).toBeInTheDocument();
+    expect(screen.queryByText("5-9 February, 2024")).not.toBeInTheDocument();
   });
 
   it("supports navigating to the next page with the current dataset", async () => {
@@ -222,14 +222,14 @@ describe("TimesheetsPage", () => {
 
     render(<TimesheetsPage />);
 
-    expect(screen.getByText("1 - 5 January, 2024")).toBeInTheDocument();
-    expect(screen.queryByText("5 - 9 February, 2024")).not.toBeInTheDocument();
+    expect(screen.getByText("1-5 January, 2024")).toBeInTheDocument();
+    expect(screen.queryByText("5-9 February, 2024")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Next" }));
 
-    await waitFor(() => expect(screen.getByText("5 - 9 February, 2024")).toBeInTheDocument());
-    expect(screen.getByText("4 - 8 March, 2024")).toBeInTheDocument();
-    expect(screen.queryByText("1 - 5 January, 2024")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("5-9 February, 2024")).toBeInTheDocument());
+    expect(screen.getByText("4-8 March, 2024")).toBeInTheDocument();
+    expect(screen.queryByText("1-5 January, 2024")).not.toBeInTheDocument();
   });
 
   it("renders all expected pagination controls for 15 items", () => {
@@ -251,12 +251,12 @@ describe("TimesheetsPage", () => {
     render(<TimesheetsPage />);
 
     await user.click(screen.getByRole("button", { name: "Next" }));
-    await waitFor(() => expect(screen.getByText("5 - 9 February, 2024")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("5-9 February, 2024")).toBeInTheDocument());
 
     await user.click(screen.getByRole("button", { name: "Previous" }));
 
-    await waitFor(() => expect(screen.getByText("1 - 5 January, 2024")).toBeInTheDocument());
-    expect(screen.queryByText("5 - 9 February, 2024")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("1-5 January, 2024")).toBeInTheDocument());
+    expect(screen.queryByText("5-9 February, 2024")).not.toBeInTheDocument();
   });
 
   it("supports navigating directly with page number buttons", async () => {
@@ -267,9 +267,9 @@ describe("TimesheetsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "3" }));
 
-    await waitFor(() => expect(screen.getByText("25 - 29 March, 2024")).toBeInTheDocument());
-    expect(screen.getByText("8 - 12 April, 2024")).toBeInTheDocument();
-    expect(screen.queryByText("1 - 5 January, 2024")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("25-29 March, 2024")).toBeInTheDocument());
+    expect(screen.getByText("8-12 April, 2024")).toBeInTheDocument();
+    expect(screen.queryByText("1-5 January, 2024")).not.toBeInTheDocument();
   });
 
   it("shows only two page buttons after switching to 10 rows per page", async () => {
@@ -279,11 +279,11 @@ describe("TimesheetsPage", () => {
     render(<TimesheetsPage />);
 
     await user.click(screen.getByRole("button", { name: "3" }));
-    await waitFor(() => expect(screen.getByText("25 - 29 March, 2024")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("25-29 March, 2024")).toBeInTheDocument());
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Rows per page" }), "10");
 
-    await waitFor(() => expect(screen.getByText("4 - 8 March, 2024")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("4-8 March, 2024")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "1" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "2" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "3" })).not.toBeInTheDocument();

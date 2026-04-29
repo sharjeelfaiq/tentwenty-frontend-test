@@ -201,7 +201,7 @@ describe("API routes", () => {
       new Request("http://localhost/api/timesheets/detail-jan-21/entries/jan21-1", {
         method: "PATCH",
         body: JSON.stringify({
-          day: "Jan 21",
+          day: "Jan 22",
           project: "Project Name",
           type: "Feature work",
           description: "Updated description",

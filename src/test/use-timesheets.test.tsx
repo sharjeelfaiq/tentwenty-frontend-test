@@ -56,8 +56,8 @@ describe("useTimesheets", () => {
     expect(result.current.totalItems).toBe(15);
     expect(result.current.totalPages).toBe(3);
     expect(result.current.paginatedTimesheets).toHaveLength(5);
-    expect(result.current.paginatedTimesheets[0].dateLabel).toBe("1 - 5 January, 2024");
-    expect(result.current.paginatedTimesheets[4].dateLabel).toBe("28 January - 1 February, 2024");
+    expect(result.current.paginatedTimesheets[0].dateLabel).toBe("1-5 January, 2024");
+    expect(result.current.paginatedTimesheets[4].dateLabel).toBe("29 January-2 February, 2024");
   });
 
   it("switches to 10 rows per page and derives 2 pages", async () => {
@@ -73,7 +73,7 @@ describe("useTimesheets", () => {
     expect(result.current.currentPage).toBe(1);
     expect(result.current.totalPages).toBe(2);
     expect(result.current.paginatedTimesheets).toHaveLength(10);
-    expect(result.current.paginatedTimesheets[9].dateLabel).toBe("4 - 8 March, 2024");
+    expect(result.current.paginatedTimesheets[9].dateLabel).toBe("4-8 March, 2024");
   });
 
   it("resets the page to 1 when the page size changes", async () => {
@@ -142,8 +142,8 @@ describe("useTimesheets", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.rawTimesheets).toHaveLength(7);
-    expect(result.current.totalItems).toBe(7);
+    expect(result.current.rawTimesheets).toHaveLength(6);
+    expect(result.current.totalItems).toBe(6);
     expect(result.current.totalPages).toBe(2);
     expect(result.current.paginatedTimesheets).toHaveLength(5);
   });

@@ -3,6 +3,7 @@ import type {
   TaskType,
   Timesheet,
   TimesheetEntry,
+  TimesheetStatus,
   User,
 } from "@/types";
 
@@ -37,101 +38,79 @@ function entry(
   };
 }
 
+const generatedWeekStatuses: TimesheetStatus[] = [
+  "COMPLETED",
+  "COMPLETED",
+  "INCOMPLETE",
+  "INCOMPLETE",
+  "MISSING",
+  "COMPLETED",
+  "INCOMPLETE",
+  "MISSING",
+  "COMPLETED",
+];
+
+const listDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
+function toDateOnly(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function formatTimesheetDateLabel(start: Date, end: Date) {
+  const startMonth = listDateFormatter.formatToParts(start).find((part) => part.type === "month")?.value ?? "";
+  const endMonth = listDateFormatter.formatToParts(end).find((part) => part.type === "month")?.value ?? "";
+  const startDay = start.getUTCDate();
+  const endDay = end.getUTCDate();
+  const year = end.getUTCFullYear();
+
+  if (startMonth === endMonth) {
+    return `${startDay}-${endDay} ${endMonth}, ${year}`;
+  }
+
+  return `${startDay} ${startMonth}-${endDay} ${endMonth}, ${year}`;
+}
+
+function generateWorkWeekTimesheets(startDate: string, endDate: string): Timesheet[] {
+  const cursor = new Date(`${startDate}T00:00:00.000Z`);
+  const limit = new Date(`${endDate}T00:00:00.000Z`);
+  const weeks: Timesheet[] = [];
+
+  while (cursor <= limit) {
+    const weekStart = new Date(cursor);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setUTCDate(weekStart.getUTCDate() + 4);
+
+    const weekNumber = weeks.length + 1;
+
+    weeks.push({
+      id: weekNumber === 4 ? "detail-jan-21" : String(weekNumber),
+      weekNumber,
+      dateLabel: formatTimesheetDateLabel(weekStart, weekEnd),
+      rangeStart: toDateOnly(weekStart),
+      rangeEnd: toDateOnly(weekEnd),
+      totalHours: generatedWeekStatuses[weekNumber - 1] === "MISSING" ? 0 : 40,
+      status: generatedWeekStatuses[weekNumber - 1] ?? "MISSING",
+      entries: [],
+    });
+
+    cursor.setUTCDate(cursor.getUTCDate() + 7);
+  }
+
+  return weeks;
+}
+
+const januaryFebruaryTimesheets = generateWorkWeekTimesheets("2024-01-01", "2024-02-29");
+
 export const timesheets: Timesheet[] = [
-  {
-    id: "1",
-    weekNumber: 1,
-    dateLabel: "1 - 5 January, 2024",
-    rangeStart: "2024-01-01",
-    rangeEnd: "2024-01-05",
-    totalHours: 40,
-    status: "COMPLETED",
-    entries: [],
-  },
-  {
-    id: "2",
-    weekNumber: 2,
-    dateLabel: "8 - 12 January, 2024",
-    rangeStart: "2024-01-08",
-    rangeEnd: "2024-01-12",
-    totalHours: 40,
-    status: "COMPLETED",
-    entries: [],
-  },
-  {
-    id: "detail-jan-21",
-    weekNumber: 3,
-    dateLabel: "15 - 19 January, 2024",
-    rangeStart: "2024-01-15",
-    rangeEnd: "2024-01-19",
-    totalHours: 20,
-    status: "INCOMPLETE",
-    entries: [],
-  },
-  {
-    id: "4",
-    weekNumber: 4,
-    dateLabel: "22 - 26 January, 2024",
-    rangeStart: "2024-01-22",
-    rangeEnd: "2024-01-26",
-    totalHours: 40,
-    status: "COMPLETED",
-    entries: [],
-  },
-  {
-    id: "5",
-    weekNumber: 5,
-    dateLabel: "28 January - 1 February, 2024",
-    rangeStart: "2024-01-28",
-    rangeEnd: "2024-02-01",
-    totalHours: 0,
-    status: "MISSING",
-    entries: [],
-  },
-  {
-    id: "6",
-    weekNumber: 6,
-    dateLabel: "5 - 9 February, 2024",
-    rangeStart: "2024-02-05",
-    rangeEnd: "2024-02-09",
-    totalHours: 40,
-    status: "COMPLETED",
-    entries: [],
-  },
-  {
-    id: "7",
-    weekNumber: 7,
-    dateLabel: "12 - 16 February, 2024",
-    rangeStart: "2024-02-12",
-    rangeEnd: "2024-02-16",
-    totalHours: 18,
-    status: "INCOMPLETE",
-    entries: [],
-  },
-  {
-    id: "8",
-    weekNumber: 8,
-    dateLabel: "19 - 23 February, 2024",
-    rangeStart: "2024-02-19",
-    rangeEnd: "2024-02-23",
-    totalHours: 0,
-    status: "MISSING",
-    entries: [],
-  },
-  {
-    id: "9",
-    weekNumber: 9,
-    dateLabel: "26 February - 1 March, 2024",
-    rangeStart: "2024-02-26",
-    rangeEnd: "2024-03-01",
-    totalHours: 40,
-    status: "COMPLETED",
-    entries: [],
-  },
+  ...januaryFebruaryTimesheets,
   {
     id: "10",
     weekNumber: 10,
-    dateLabel: "4 - 8 March, 2024",
+    dateLabel: "4-8 March, 2024",
     rangeStart: "2024-03-04",
     rangeEnd: "2024-03-08",
     totalHours: 24,
@@ -141,7 +120,7 @@ export const timesheets: Timesheet[] = [
   {
     id: "11",
     weekNumber: 11,
-    dateLabel: "11 - 15 March, 2024",
+    dateLabel: "11-15 March, 2024",
     rangeStart: "2024-03-11",
     rangeEnd: "2024-03-15",
     totalHours: 0,
@@ -151,7 +130,7 @@ export const timesheets: Timesheet[] = [
   {
     id: "12",
     weekNumber: 12,
-    dateLabel: "18 - 22 March, 2024",
+    dateLabel: "18-22 March, 2024",
     rangeStart: "2024-03-18",
     rangeEnd: "2024-03-22",
     totalHours: 40,
@@ -161,7 +140,7 @@ export const timesheets: Timesheet[] = [
   {
     id: "13",
     weekNumber: 13,
-    dateLabel: "25 - 29 March, 2024",
+    dateLabel: "25-29 March, 2024",
     rangeStart: "2024-03-25",
     rangeEnd: "2024-03-29",
     totalHours: 32,
@@ -171,7 +150,7 @@ export const timesheets: Timesheet[] = [
   {
     id: "14",
     weekNumber: 14,
-    dateLabel: "1 - 5 April, 2024",
+    dateLabel: "1-5 April, 2024",
     rangeStart: "2024-04-01",
     rangeEnd: "2024-04-05",
     totalHours: 0,
@@ -181,7 +160,7 @@ export const timesheets: Timesheet[] = [
   {
     id: "15",
     weekNumber: 15,
-    dateLabel: "8 - 12 April, 2024",
+    dateLabel: "8-12 April, 2024",
     rangeStart: "2024-04-08",
     rangeEnd: "2024-04-12",
     totalHours: 40,
@@ -193,23 +172,23 @@ export const timesheets: Timesheet[] = [
 export const detailTimesheet: Timesheet = {
   id: "detail-jan-21",
   weekNumber: 4,
-  dateLabel: "21 - 26 January, 2024",
-  rangeStart: "2024-01-21",
+  dateLabel: "22-26 January, 2024",
+  rangeStart: "2024-01-22",
   rangeEnd: "2024-01-26",
   totalHours: 20,
   status: "INCOMPLETE",
   entries: [
-    entry("jan21-1", "Jan 21", "Homepage Development", 4),
-    entry("jan21-2", "Jan 21", "Homepage Development", 4),
+    entry("jan21-1", "Jan 22", "Homepage Development", 4),
+    entry("jan21-2", "Jan 22", "Homepage Development", 4),
     entry("jan22-1", "Jan 22", "Homepage Development", 4),
-    entry("jan22-2", "Jan 22", "Homepage Development", 4),
-    entry("jan22-3", "Jan 22", "Homepage Development", 4),
+    entry("jan22-2", "Jan 23", "Homepage Development", 4),
+    entry("jan22-3", "Jan 23", "Homepage Development", 4),
     entry("jan23-1", "Jan 23", "Homepage Development", 4),
-    entry("jan23-2", "Jan 23", "Homepage Development", 4),
-    entry("jan23-3", "Jan 23", "Homepage Development", 4),
+    entry("jan23-2", "Jan 24", "Homepage Development", 4),
+    entry("jan23-3", "Jan 24", "Homepage Development", 4),
     entry("jan24-1", "Jan 24", "Homepage Development", 4),
-    entry("jan24-2", "Jan 24", "Homepage Development", 4),
-    entry("jan24-3", "Jan 24", "Homepage Development", 4),
+    entry("jan24-2", "Jan 25", "Homepage Development", 4),
+    entry("jan24-3", "Jan 25", "Homepage Development", 4),
   ],
 };
 

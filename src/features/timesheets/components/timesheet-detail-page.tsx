@@ -13,6 +13,7 @@ import {
   Textarea,
 } from "@components/shared";
 import { projectOptions, taskTypeOptions } from "@lib/mock-data";
+import { getTimesheetDays } from "@lib/timesheet-dates";
 import { cn } from "@lib/utils";
 import { useTimesheetDetail } from "@features/timesheets/hooks/use-timesheet-detail";
 import type { TimesheetDetailResponse } from "@features/timesheets/services/timesheet-service";
@@ -48,8 +49,7 @@ export function TimesheetDetailPage({ id, initialResponse }: TimesheetDetailPage
       return [];
     }
 
-    const days = ["Jan 21", "Jan 22", "Jan 23", "Jan 24", "Jan 25"];
-    return days.map((day) => ({
+    return getTimesheetDays(timesheet).map((day) => ({
       day,
       entries: timesheet.entries.filter((entry) => entry.day === day),
     }));
@@ -62,7 +62,7 @@ export function TimesheetDetailPage({ id, initialResponse }: TimesheetDetailPage
           <div className="flex flex-col gap-6 border-b border-[var(--app-border)] px-3 pb-4 pt-1 md:flex-row md:items-start md:justify-between">
             <div>
               <h1 className="text-[22px] font-bold tracking-[-0.04em] text-slate-800">This week&apos;s timesheet</h1>
-              <p className="mt-5 text-[14px] text-slate-400">{timesheet?.dateLabel ?? "21 - 26 January, 2024"}</p>
+              <p className="mt-5 text-[14px] text-slate-400">{timesheet?.dateLabel ?? "22-26 January, 2024"}</p>
             </div>
             <div className="flex items-start gap-3 self-start">
               <div className="space-y-1 text-right">
@@ -87,7 +87,7 @@ export function TimesheetDetailPage({ id, initialResponse }: TimesheetDetailPage
             ) : (
               <div className="space-y-4">
                 {actionError ? <div className="text-sm text-red-500">{actionError}</div> : null}
-                {groupedEntries.map(({ day, entries }) => (
+                {groupedEntries.map(({ day, entries }, index) => (
                   <section key={day} className="grid grid-cols-[70px_1fr] gap-[14px]">
                     <div className="pt-2 text-[16px] font-semibold text-slate-800">{day}</div>
                     <div className="space-y-2">
@@ -134,7 +134,7 @@ export function TimesheetDetailPage({ id, initialResponse }: TimesheetDetailPage
                         }}
                         className={cn(
                           "flex h-[32px] w-full items-center justify-center rounded-[8px] border border-dashed text-[14px]",
-                          day === "Jan 21"
+                          index === 0
                             ? "border-[var(--app-blue)] bg-[#f6f9ff] text-[var(--app-blue)]"
                             : "border-[var(--app-border)] bg-white text-slate-400",
                         )}

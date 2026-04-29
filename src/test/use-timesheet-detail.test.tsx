@@ -17,9 +17,9 @@ vi.mock("@features/timesheets/services/timesheet-service", () => ({
 
 const baseTimesheet = {
   id: "detail-jan-21",
-  weekNumber: 3,
-  dateLabel: "21 - 26 January, 2024",
-  rangeStart: "2024-01-21",
+  weekNumber: 4,
+  dateLabel: "22-26 January, 2024",
+  rangeStart: "2024-01-22",
   rangeEnd: "2024-01-26",
   status: "INCOMPLETE" as const,
   totalHours: 20,
