@@ -2,6 +2,10 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useTimesheetDetail } from "@features/timesheets/hooks/use-timesheet-detail";
+import {
+  readTimesheetsStore,
+  writeTimesheetsStore,
+} from "@features/timesheets/services/timesheet-storage";
 
 const getTimesheetDetail = vi.fn();
 const createTimesheetEntry = vi.fn();
@@ -45,6 +49,7 @@ const baseTimesheet = {
 
 describe("useTimesheetDetail", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     getTimesheetDetail.mockReset();
     createTimesheetEntry.mockReset();
     updateTimesheetEntry.mockReset();
@@ -110,6 +115,7 @@ describe("useTimesheetDetail", () => {
       description: "Write tests",
       hours: 3,
     });
+    expect(readTimesheetsStore()?.timesheets[0]).toEqual(baseTimesheet);
     expect(routerRefresh).toHaveBeenCalledOnce();
   });
 
@@ -143,6 +149,7 @@ describe("useTimesheetDetail", () => {
       description: "Updated task",
       hours: 4,
     });
+    expect(readTimesheetsStore()?.timesheets[0]).toEqual(baseTimesheet);
     expect(routerRefresh).toHaveBeenCalledOnce();
   });
 
@@ -170,8 +177,51 @@ describe("useTimesheetDetail", () => {
     expect(window.confirm).toHaveBeenCalledWith("Delete this task?");
     expect(deleteTimesheetEntry).toHaveBeenCalledWith("detail-jan-21", "jan22-1");
     expect(result.current.timesheet?.entries).toEqual([]);
+    expect(readTimesheetsStore()?.timesheets[0].entries).toEqual([]);
     expect(result.current.openMenuEntryId).toBe("");
     expect(routerRefresh).toHaveBeenCalledOnce();
+  });
+
+  it("hydrates matching detail state from localStorage after mount", async () => {
+    const cachedTimesheet = {
+      ...baseTimesheet,
+      totalHours: 32,
+      status: "INCOMPLETE" as const,
+    };
+    getTimesheetDetail.mockImplementation(() => new Promise(() => undefined));
+    writeTimesheetsStore({
+      user: { id: "user-1", name: "John Doe", email: "john@example.com" },
+      timesheets: [cachedTimesheet],
+    });
+
+    const { result } = renderHook(() => useTimesheetDetail("detail-jan-21"));
+
+    await waitFor(() => expect(result.current.timesheet).toEqual(cachedTimesheet));
+  });
+
+  it("does not write failed mutations to localStorage", async () => {
+    createTimesheetEntry.mockRejectedValue(new Error("Request failed"));
+
+    const { result } = renderHook(() => useTimesheetDetail("detail-jan-21"));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const cachedBeforeMutation = readTimesheetsStore();
+
+    act(() => {
+      result.current.openForAdd("Jan 24");
+    });
+
+    act(() => {
+      result.current.setFormField("description", "Write tests");
+      result.current.setFormField("hours", 3);
+    });
+
+    await act(async () => {
+      await result.current.saveEntry();
+    });
+
+    expect(readTimesheetsStore()).toEqual(cachedBeforeMutation);
+    expect(routerRefresh).not.toHaveBeenCalled();
   });
 
   it("does not delete when confirmation is cancelled", async () => {

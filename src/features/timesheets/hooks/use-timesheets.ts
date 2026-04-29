@@ -4,6 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "@lib/api";
 import { getTimesheets, type TimesheetsResponse } from "@features/timesheets/services/timesheet-service";
+import {
+  filterCachedTimesheets,
+  mergeTimesheetsFromServer,
+  readTimesheetsStore,
+  writeTimesheetsStore,
+} from "@features/timesheets/services/timesheet-storage";
 import type {
   DateRangeFilter,
   Timesheet,
@@ -80,6 +86,15 @@ export function useTimesheets(initialResponse?: TimesheetsResponse) {
           return;
         }
 
+        const cachedStore = readTimesheetsStore();
+        const mergedTimesheets = mergeTimesheetsFromServer(
+          response.timesheets,
+          cachedStore?.timesheets ?? [],
+        );
+        writeTimesheetsStore({
+          user: response.user,
+          timesheets: mergedTimesheets,
+        });
         setRawTimesheets(response.timesheets);
         setUser(response.user);
       } catch (loadError) {
@@ -87,8 +102,6 @@ export function useTimesheets(initialResponse?: TimesheetsResponse) {
           return;
         }
 
-        setRawTimesheets([]);
-        setUser(null);
         setError(
           loadError instanceof ApiError
             ? loadError.message
@@ -102,6 +115,29 @@ export function useTimesheets(initialResponse?: TimesheetsResponse) {
     },
     [range, status],
   );
+
+  useEffect(() => {
+    const cachedStore = readTimesheetsStore();
+
+    if (!cachedStore) {
+      return;
+    }
+
+    const cachedTimesheets = filterCachedTimesheets(cachedStore.timesheets, {
+      range,
+      status,
+    });
+
+    queueMicrotask(() => {
+      if (cachedTimesheets.length > 0) {
+        setRawTimesheets(cachedTimesheets);
+      }
+
+      if (cachedStore.user) {
+        setUser(cachedStore.user);
+      }
+    });
+  }, [range, status]);
 
   useEffect(() => {
     const showLoading = hasLoadedFromEffectRef.current || !initialResponse;

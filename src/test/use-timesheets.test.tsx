@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { timesheets } from "@lib/mock-data";
 import { useTimesheets } from "@features/timesheets/hooks/use-timesheets";
+import {
+  readTimesheetsStore,
+  writeTimesheetsStore,
+} from "@features/timesheets/services/timesheet-storage";
 import type { DateRangeFilter, Timesheet, TimesheetStatus } from "@/types";
 
 const getTimesheets = vi.fn();
@@ -40,6 +44,7 @@ function createResponse(filteredTimesheets: Timesheet[]) {
 
 describe("useTimesheets", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     getTimesheets.mockReset();
     getTimesheets.mockImplementation(
       async ({ range, status }: { range: DateRangeFilter; status: "all" | TimesheetStatus }) =>
@@ -146,5 +151,51 @@ describe("useTimesheets", () => {
     expect(result.current.totalItems).toBe(6);
     expect(result.current.totalPages).toBe(2);
     expect(result.current.paginatedTimesheets).toHaveLength(5);
+  });
+
+  it("hydrates dashboard state from localStorage after mount", async () => {
+    const cachedTimesheet = {
+      ...timesheets[0],
+      totalHours: 16,
+      status: "INCOMPLETE" as const,
+    };
+    getTimesheets.mockImplementation(() => new Promise(() => undefined));
+    writeTimesheetsStore({
+      user: { id: "user-1", name: "John Doe", email: "john@example.com" },
+      timesheets: [cachedTimesheet],
+    });
+
+    const { result } = renderHook(() => useTimesheets());
+
+    await waitFor(() => expect(result.current.rawTimesheets).toEqual([cachedTimesheet]));
+  });
+
+  it("writes fetched server timesheets to localStorage", async () => {
+    const { result } = renderHook(() => useTimesheets());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const cachedStore = readTimesheetsStore();
+
+    expect(result.current.totalItems).toBe(15);
+    expect(cachedStore?.timesheets).toHaveLength(15);
+    expect(cachedStore?.user?.id).toBe("user-1");
+  });
+
+  it("server data overrides stale cached data in localStorage", async () => {
+    writeTimesheetsStore({
+      user: null,
+      timesheets: [
+        {
+          ...timesheets[0],
+          totalHours: 1,
+          status: "INCOMPLETE",
+        },
+      ],
+    });
+
+    renderHook(() => useTimesheets());
+
+    await waitFor(() => expect(readTimesheetsStore()?.timesheets[0].totalHours).toBe(timesheets[0].totalHours));
   });
 });

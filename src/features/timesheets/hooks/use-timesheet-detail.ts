@@ -12,6 +12,7 @@ import {
   type TimesheetDetailResponse,
   updateTimesheetEntry,
 } from "@features/timesheets/services/timesheet-service";
+import { getCachedTimesheet, upsertCachedTimesheet } from "@features/timesheets/services/timesheet-storage";
 import type {
   EntryModalMode,
   FieldErrors,
@@ -56,6 +57,16 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
   const shouldUseInitialResponse = useRef(Boolean(initialResponse));
 
   useEffect(() => {
+    const cachedTimesheet = getCachedTimesheet(id);
+
+    if (cachedTimesheet) {
+      queueMicrotask(() => {
+        setTimesheet(cachedTimesheet);
+      });
+    }
+  }, [id]);
+
+  useEffect(() => {
     let active = true;
 
     async function load() {
@@ -77,6 +88,7 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
 
         setTimesheet(response.timesheet);
         setUser(response.user);
+        upsertCachedTimesheet(response.timesheet, response.user);
       } catch (loadError) {
         if (!active) {
           return;
@@ -151,6 +163,7 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
           : await createTimesheetEntry(id, validation.data);
 
       setTimesheet(response.timesheet);
+      upsertCachedTimesheet(response.timesheet, response.user);
       router.refresh();
       closeModal();
     } catch (submissionError) {
@@ -174,6 +187,7 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
     try {
       const response = await deleteTimesheetEntry(id, entryId);
       setTimesheet(response.timesheet);
+      upsertCachedTimesheet(response.timesheet, response.user);
       router.refresh();
       setOpenMenuEntryId("");
     } catch (submissionError) {
