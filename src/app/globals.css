@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+:root {
+  --app-background: #ffffff;
+  --app-page: #f5f6f8;
+  --app-foreground: #1f2937;
+  --app-muted: #6b7280;
+  --app-muted-soft: #9ca3af;
+  --app-border: #d9e0ea;
+  --app-border-strong: #cfd7e3;
+  --app-blue: #2b5bf5;
+  --app-blue-dark: #2147cf;
+  --app-blue-soft: #edf3ff;
+  --app-orange: #f97316;
+  --app-green-bg: #dff8eb;
+  --app-green-text: #065f46;
+  --app-yellow-bg: #fff1a6;
+  --app-yellow-text: #854d0e;
+  --app-pink-bg: #fde0ec;
+  --app-pink-text: #9d174d;
+  --app-overlay: rgba(78, 89, 106, 0.94);
+}
+
+@theme inline {
+  --color-background: var(--app-background);
+  --color-foreground: var(--app-foreground);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: var(--font-inter), ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--app-foreground);
+  background: var(--app-page);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(43, 91, 245, 0.14);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app-card {
+  border: 1px solid rgba(217, 224, 234, 0.9);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.app-focus-ring {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(43, 91, 245, 0.16);
+}
