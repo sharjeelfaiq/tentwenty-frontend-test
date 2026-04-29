@@ -17,6 +17,9 @@ export type FieldErrors<TField extends string = string> = Partial<Record<TField,
 export interface ApiErrorPayload<TField extends string = string> {
   error: string;
   fieldErrors?: FieldErrors<TField>;
+  max?: number;
+  currentTotal?: number;
+  projectedTotal?: number;
 }
 
 export interface TimesheetEntry {

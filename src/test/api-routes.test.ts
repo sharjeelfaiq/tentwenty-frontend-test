@@ -123,7 +123,7 @@ describe("API routes", () => {
 
   it("creates a timesheet entry", async () => {
     const response = await createEntry(
-      new Request("http://localhost/api/timesheets/detail-jan-21/entries", {
+      new Request("http://localhost/api/timesheets/5/entries", {
         method: "POST",
         body: JSON.stringify({
           day: "Jan 25",
@@ -133,13 +133,37 @@ describe("API routes", () => {
           hours: 2,
         }),
       }),
-      { params: Promise.resolve({ id: "detail-jan-21" }) },
+      { params: Promise.resolve({ id: "5" }) },
     );
     const payload = await response.json();
 
     expect(response.status).toBe(200);
     expect(payload.timesheet.entries.at(-1).description).toBe("Create route test");
-    expect(payload.timesheet.status).toBe("COMPLETED");
+    expect(payload.timesheet.status).toBe("INCOMPLETE");
+  });
+
+  it("rejects create-entry requests that exceed 40 total hours", async () => {
+    const response = await createEntry(
+      new Request("http://localhost/api/timesheets/detail-jan-21/entries", {
+        method: "POST",
+        body: JSON.stringify({
+          day: "Jan 25",
+          project: "Project Name",
+          type: "Bug fixes",
+          description: "Over limit",
+          hours: 1,
+        }),
+      }),
+      { params: Promise.resolve({ id: "detail-jan-21" }) },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toBe("HOUR_LIMIT_EXCEEDED");
+    expect(payload.max).toBe(40);
+    expect(payload.currentTotal).toBe(40);
+    expect(payload.projectedTotal).toBe(41);
+    expect(payload.fieldErrors.hours).toBe("Timesheet total cannot exceed 40 hours.");
   });
 
   it("derives incomplete status for timesheets with partial entries", async () => {
@@ -205,7 +229,7 @@ describe("API routes", () => {
           project: "Project Name",
           type: "Feature work",
           description: "Updated description",
-          hours: 6,
+          hours: 4,
         }),
       }),
       { params: Promise.resolve({ id: "detail-jan-21", entryId: "jan21-1" }) },
@@ -217,6 +241,28 @@ describe("API routes", () => {
       "Updated description",
     );
     expect(payload.timesheet.status).toBe("COMPLETED");
+  });
+
+  it("rejects update-entry requests that exceed 40 total hours", async () => {
+    const response = await updateEntry(
+      new Request("http://localhost/api/timesheets/detail-jan-21/entries/jan21-1", {
+        method: "PATCH",
+        body: JSON.stringify({
+          day: "Jan 22",
+          project: "Project Name",
+          type: "Feature work",
+          description: "Too many hours",
+          hours: 5,
+        }),
+      }),
+      { params: Promise.resolve({ id: "detail-jan-21", entryId: "jan21-1" }) },
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error).toBe("HOUR_LIMIT_EXCEEDED");
+    expect(payload.currentTotal).toBe(36);
+    expect(payload.projectedTotal).toBe(41);
   });
 
   it("deletes an existing entry", async () => {

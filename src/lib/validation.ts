@@ -1,5 +1,5 @@
 import { projectOptions, taskTypeOptions } from "@lib/mock-data";
-import type { FieldErrors, LoginField, ProjectName, TaskType, TimesheetEntryField } from "@/types";
+import type { FieldErrors, LoginField, ProjectName, TaskType, TimesheetEntry, TimesheetEntryField } from "@/types";
 
 export interface LoginInput {
   email: string;
@@ -23,11 +23,30 @@ interface ValidationResult<TField extends string, TValue> {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_HOURS = 24;
+const MAX_TIMESHEET_HOURS = 40;
+export const TIMESHEET_HOUR_LIMIT_EXCEEDED = "HOUR_LIMIT_EXCEEDED";
 
 export const validationLimits = {
   minPasswordLength: MIN_PASSWORD_LENGTH,
   maxHours: MAX_HOURS,
+  maxTimesheetHours: MAX_TIMESHEET_HOURS,
 };
+
+export interface TimesheetHoursLimitResult {
+  isValid: boolean;
+  max: number;
+  currentTotal: number;
+  projectedTotal: number;
+}
+
+export class TimesheetHourLimitError extends Error {
+  readonly code = TIMESHEET_HOUR_LIMIT_EXCEEDED;
+
+  constructor(readonly result: TimesheetHoursLimitResult) {
+    super(`Timesheet total cannot exceed ${result.max} hours.`);
+    this.name = "TimesheetHourLimitError";
+  }
+}
 
 export function normalizeString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -105,4 +124,34 @@ export function validateTimesheetEntryInput(
     fieldErrors,
     isValid: Object.keys(fieldErrors).length === 0,
   };
+}
+
+export function validateTimesheetHoursLimit(
+  entries: Pick<TimesheetEntry, "id" | "hours">[],
+  incomingHours: number,
+  options: { excludeEntryId?: string } = {},
+): TimesheetHoursLimitResult {
+  const currentTotal = entries
+    .filter((entry) => entry.id !== options.excludeEntryId)
+    .reduce((sum, entry) => sum + entry.hours, 0);
+  const projectedTotal = currentTotal + incomingHours;
+
+  return {
+    isValid: projectedTotal <= MAX_TIMESHEET_HOURS,
+    max: MAX_TIMESHEET_HOURS,
+    currentTotal,
+    projectedTotal,
+  };
+}
+
+export function assertTimesheetHoursLimit(
+  entries: Pick<TimesheetEntry, "id" | "hours">[],
+  incomingHours: number,
+  options: { excludeEntryId?: string } = {},
+) {
+  const result = validateTimesheetHoursLimit(entries, incomingHours, options);
+
+  if (!result.isValid) {
+    throw new TimesheetHourLimitError(result);
+  }
 }

@@ -175,8 +175,8 @@ export const detailTimesheet: Timesheet = {
   dateLabel: "22-26 January, 2024",
   rangeStart: "2024-01-22",
   rangeEnd: "2024-01-26",
-  totalHours: 20,
-  status: "INCOMPLETE",
+  totalHours: 40,
+  status: "COMPLETED",
   entries: [
     entry("jan21-1", "Jan 22", "Homepage Development", 4),
     entry("jan21-2", "Jan 22", "Homepage Development", 4),
@@ -188,7 +188,6 @@ export const detailTimesheet: Timesheet = {
     entry("jan23-3", "Jan 24", "Homepage Development", 4),
     entry("jan24-1", "Jan 24", "Homepage Development", 4),
     entry("jan24-2", "Jan 25", "Homepage Development", 4),
-    entry("jan24-3", "Jan 25", "Homepage Development", 4),
   ],
 };
 

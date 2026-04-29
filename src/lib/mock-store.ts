@@ -1,5 +1,6 @@
 import { detailTimesheet, timesheets } from "@lib/mock-data";
 import { deriveTimesheet } from "@lib/timesheet-status";
+import { assertTimesheetHoursLimit } from "@lib/validation";
 import type { DateRangeFilter, Timesheet, TimesheetEntry, TimesheetStatus } from "@/types";
 
 interface TimesheetStore {
@@ -63,6 +64,8 @@ export function createEntry(timesheetId: string, entry: Omit<TimesheetEntry, "id
     return null;
   }
 
+  assertTimesheetHoursLimit(store.timesheets[index].entries, entry.hours);
+
   const nextEntry: TimesheetEntry = {
     ...entry,
     id: `entry-${Date.now()}`,
@@ -92,6 +95,8 @@ export function updateEntry(timesheetId: string, entryId: string, entry: Omit<Ti
   if (entryIndex < 0) {
     return null;
   }
+
+  assertTimesheetHoursLimit(existing.entries, entry.hours, { excludeEntryId: entryId });
 
   const nextEntries = existing.entries.map((item, currentIndex) =>
     currentIndex === entryIndex

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import type { ApiErrorPayload, FieldErrors } from "@/types";
+import type { TimesheetHourLimitError } from "@lib/validation";
+import { TIMESHEET_HOUR_LIMIT_EXCEEDED } from "@lib/validation";
 
 export function jsonError<TField extends string>(
   status: number,
@@ -22,4 +24,24 @@ export async function parseJsonBody(request: Request) {
   } catch {
     return { response: jsonError(400, "Request body must be valid JSON.") };
   }
+}
+
+export function jsonTimesheetHourLimitError(error: TimesheetHourLimitError) {
+  return NextResponse.json(
+    {
+      error: TIMESHEET_HOUR_LIMIT_EXCEEDED,
+      fieldErrors: {
+        hours: error.message,
+      },
+      max: error.result.max,
+      currentTotal: error.result.currentTotal,
+      projectedTotal: error.result.projectedTotal,
+    },
+    {
+      status: 400,
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }

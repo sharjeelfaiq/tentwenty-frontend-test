@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { requireApiSession } from "@lib/auth/guards";
-import { jsonError, parseJsonBody } from "@lib/http";
+import { jsonError, jsonTimesheetHourLimitError, parseJsonBody } from "@lib/http";
 import { deleteEntry, updateEntry } from "@lib/mock-store";
-import { validateTimesheetEntryInput } from "@lib/validation";
+import { TimesheetHourLimitError, validateTimesheetEntryInput } from "@lib/validation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -34,7 +34,17 @@ export async function PATCH(
     return jsonError(400, "Please correct the highlighted fields.", validation.fieldErrors);
   }
 
-  const timesheet = updateEntry(id, entryId, validation.data);
+  let timesheet;
+
+  try {
+    timesheet = updateEntry(id, entryId, validation.data);
+  } catch (error) {
+    if (error instanceof TimesheetHourLimitError) {
+      return jsonTimesheetHourLimitError(error);
+    }
+
+    throw error;
+  }
 
   if (!timesheet) {
     return jsonError(404, "Entry not found.");
