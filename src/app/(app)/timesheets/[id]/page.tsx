@@ -9,6 +9,9 @@ interface TimesheetDetailRoutePageProps {
   params: Promise<{ id: string }>;
 }
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({ params }: TimesheetDetailRoutePageProps): Promise<Metadata> {
   const { id } = await params;
   const timesheet = getTimesheetById(id);

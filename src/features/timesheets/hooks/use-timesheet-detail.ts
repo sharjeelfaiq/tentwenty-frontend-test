@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { ApiError } from "@lib/api";
@@ -39,6 +40,7 @@ const initialFormState: EntryFormState = {
 };
 
 export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetailResponse) {
+  const router = useRouter();
   const [timesheet, setTimesheet] = useState<Timesheet | null>(initialResponse?.timesheet ?? null);
   const [user, setUser] = useState<User | null>(initialResponse?.user ?? null);
   const [openMenuEntryId, setOpenMenuEntryId] = useState("");
@@ -149,6 +151,7 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
           : await createTimesheetEntry(id, validation.data);
 
       setTimesheet(response.timesheet);
+      router.refresh();
       closeModal();
     } catch (submissionError) {
       if (submissionError instanceof ApiError) {
@@ -171,6 +174,7 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
     try {
       const response = await deleteTimesheetEntry(id, entryId);
       setTimesheet(response.timesheet);
+      router.refresh();
       setOpenMenuEntryId("");
     } catch (submissionError) {
       setActionError(submissionError instanceof ApiError ? submissionError.message : "Unable to delete this entry.");

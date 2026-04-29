@@ -7,12 +7,19 @@ const getTimesheetDetail = vi.fn();
 const createTimesheetEntry = vi.fn();
 const updateTimesheetEntry = vi.fn();
 const deleteTimesheetEntry = vi.fn();
+const routerRefresh = vi.fn();
 
 vi.mock("@features/timesheets/services/timesheet-service", () => ({
   getTimesheetDetail: (...args: unknown[]) => getTimesheetDetail(...args),
   createTimesheetEntry: (...args: unknown[]) => createTimesheetEntry(...args),
   updateTimesheetEntry: (...args: unknown[]) => updateTimesheetEntry(...args),
   deleteTimesheetEntry: (...args: unknown[]) => deleteTimesheetEntry(...args),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: routerRefresh,
+  }),
 }));
 
 const baseTimesheet = {
@@ -42,6 +49,7 @@ describe("useTimesheetDetail", () => {
     createTimesheetEntry.mockReset();
     updateTimesheetEntry.mockReset();
     deleteTimesheetEntry.mockReset();
+    routerRefresh.mockReset();
     vi.stubGlobal("confirm", vi.fn(() => true));
     getTimesheetDetail.mockResolvedValue({
       user: { id: "user-1", name: "John Doe", email: "john@example.com" },
@@ -102,6 +110,7 @@ describe("useTimesheetDetail", () => {
       description: "Write tests",
       hours: 3,
     });
+    expect(routerRefresh).toHaveBeenCalledOnce();
   });
 
   it("updates an existing entry in edit mode", async () => {
@@ -134,6 +143,7 @@ describe("useTimesheetDetail", () => {
       description: "Updated task",
       hours: 4,
     });
+    expect(routerRefresh).toHaveBeenCalledOnce();
   });
 
   it("deletes an entry after confirmation", async () => {
@@ -161,6 +171,7 @@ describe("useTimesheetDetail", () => {
     expect(deleteTimesheetEntry).toHaveBeenCalledWith("detail-jan-21", "jan22-1");
     expect(result.current.timesheet?.entries).toEqual([]);
     expect(result.current.openMenuEntryId).toBe("");
+    expect(routerRefresh).toHaveBeenCalledOnce();
   });
 
   it("does not delete when confirmation is cancelled", async () => {
@@ -181,5 +192,6 @@ describe("useTimesheetDetail", () => {
     expect(window.confirm).toHaveBeenCalledWith("Delete this task?");
     expect(deleteTimesheetEntry).not.toHaveBeenCalled();
     expect(result.current.openMenuEntryId).toBe("");
+    expect(routerRefresh).not.toHaveBeenCalled();
   });
 });

@@ -5,6 +5,9 @@ import { jsonError, parseJsonBody } from "@lib/http";
 import { deleteEntry, updateEntry } from "@lib/mock-store";
 import { validateTimesheetEntryInput } from "@lib/validation";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function PATCH(
   request: Request,
   context: {
@@ -37,10 +40,17 @@ export async function PATCH(
     return jsonError(404, "Entry not found.");
   }
 
-  return NextResponse.json({
-    user: session.user,
-    timesheet,
-  });
+  return NextResponse.json(
+    {
+      user: session.user,
+      timesheet,
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }
 
 export async function DELETE(
@@ -62,8 +72,15 @@ export async function DELETE(
     return jsonError(404, "Entry not found.");
   }
 
-  return NextResponse.json({
-    user: session.user,
-    timesheet,
-  });
+  return NextResponse.json(
+    {
+      user: session.user,
+      timesheet,
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }

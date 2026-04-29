@@ -4,6 +4,9 @@ import { requireApiSession } from "@lib/auth/guards";
 import { filterTimesheets } from "@lib/mock-store";
 import type { DateRangeFilter, TimesheetStatus } from "@/types";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   const session = await requireApiSession();
 
@@ -16,8 +19,15 @@ export async function GET(request: Request) {
   const status =
     (searchParams.get("status") as TimesheetStatus | "all" | null) ?? "all";
 
-  return NextResponse.json({
-    user: session.user,
-    timesheets: filterTimesheets({ range, status }),
-  });
+  return NextResponse.json(
+    {
+      user: session.user,
+      timesheets: filterTimesheets({ range, status }),
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }

@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description: "Review and manage weekly timesheets.",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function TimesheetsRoutePage() {
   const user = await requirePageSession();
 

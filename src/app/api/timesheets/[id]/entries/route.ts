@@ -5,6 +5,9 @@ import { jsonError, parseJsonBody } from "@lib/http";
 import { createEntry } from "@lib/mock-store";
 import { validateTimesheetEntryInput } from "@lib/validation";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function POST(
   request: Request,
   context: {
@@ -37,8 +40,15 @@ export async function POST(
     return jsonError(404, "Timesheet not found.");
   }
 
-  return NextResponse.json({
-    user: session.user,
-    timesheet,
-  });
+  return NextResponse.json(
+    {
+      user: session.user,
+      timesheet,
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    },
+  );
 }
