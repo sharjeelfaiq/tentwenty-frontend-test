@@ -108,15 +108,11 @@ describe("useTimesheetDetail", () => {
       await result.current.saveEntry();
     });
 
-    expect(createTimesheetEntry).toHaveBeenCalledWith("detail-jan-21", {
-      day: "Jan 24",
-      project: "Project Name",
-      type: "Bug fixes",
-      description: "Write tests",
-      hours: 3,
-    });
-    expect(readTimesheetsStore()?.timesheets[0]).toEqual(baseTimesheet);
-    expect(routerRefresh).toHaveBeenCalledOnce();
+    expect(createTimesheetEntry).not.toHaveBeenCalled();
+    expect(result.current.timesheet?.entries.at(-1)?.description).toBe("Write tests");
+    expect(result.current.timesheet?.entries.at(-1)?.taskName).toBe("Write tests");
+    expect(readTimesheetsStore()?.timesheets[0]).toEqual(result.current.timesheet);
+    expect(routerRefresh).not.toHaveBeenCalled();
   });
 
   it("updates an existing entry in edit mode", async () => {
@@ -141,16 +137,11 @@ describe("useTimesheetDetail", () => {
       await result.current.saveEntry();
     });
 
-    expect(updateTimesheetEntry).toHaveBeenCalledWith("detail-jan-21", {
-      entryId: "jan22-1",
-      day: "Jan 22",
-      project: "Project Name",
-      type: "Bug fixes",
-      description: "Updated task",
-      hours: 4,
-    });
-    expect(readTimesheetsStore()?.timesheets[0]).toEqual(baseTimesheet);
-    expect(routerRefresh).toHaveBeenCalledOnce();
+    expect(updateTimesheetEntry).not.toHaveBeenCalled();
+    expect(result.current.timesheet?.entries[0].description).toBe("Updated task");
+    expect(result.current.timesheet?.entries[0].taskName).toBe("Updated task");
+    expect(readTimesheetsStore()?.timesheets[0]).toEqual(result.current.timesheet);
+    expect(routerRefresh).not.toHaveBeenCalled();
   });
 
   it("deletes an entry after confirmation", async () => {
@@ -175,11 +166,11 @@ describe("useTimesheetDetail", () => {
     });
 
     expect(window.confirm).toHaveBeenCalledWith("Delete this task?");
-    expect(deleteTimesheetEntry).toHaveBeenCalledWith("detail-jan-21", "jan22-1");
+    expect(deleteTimesheetEntry).not.toHaveBeenCalled();
     expect(result.current.timesheet?.entries).toEqual([]);
     expect(readTimesheetsStore()?.timesheets[0].entries).toEqual([]);
     expect(result.current.openMenuEntryId).toBe("");
-    expect(routerRefresh).toHaveBeenCalledOnce();
+    expect(routerRefresh).not.toHaveBeenCalled();
   });
 
   it("hydrates matching detail state from localStorage after mount", async () => {
@@ -199,8 +190,23 @@ describe("useTimesheetDetail", () => {
     await waitFor(() => expect(result.current.timesheet).toEqual(cachedTimesheet));
   });
 
-  it("does not write failed mutations to localStorage", async () => {
-    createTimesheetEntry.mockRejectedValue(new Error("Request failed"));
+  it("does not write mutations that exceed 40 hours to localStorage", async () => {
+    const fullTimesheet = {
+      ...baseTimesheet,
+      status: "COMPLETED" as const,
+      totalHours: 40,
+      entries: [
+        {
+          ...baseTimesheet.entries[0],
+          hours: 40,
+        },
+      ],
+    };
+
+    writeTimesheetsStore({
+      user: { id: "user-1", name: "John Doe", email: "john@example.com" },
+      timesheets: [fullTimesheet],
+    });
 
     const { result } = renderHook(() => useTimesheetDetail("detail-jan-21"));
 
@@ -221,6 +227,7 @@ describe("useTimesheetDetail", () => {
     });
 
     expect(readTimesheetsStore()).toEqual(cachedBeforeMutation);
+    expect(result.current.fieldErrors.hours).toBe("Timesheet total cannot exceed 40 hours.");
     expect(routerRefresh).not.toHaveBeenCalled();
   });
 

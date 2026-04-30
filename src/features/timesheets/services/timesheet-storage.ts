@@ -1,4 +1,6 @@
-import type { DateRangeFilter, Timesheet, TimesheetStatus, User } from "@/types";
+import { deriveTimesheet } from "@lib/timesheet-status";
+import { assertTimesheetHoursLimit, type TimesheetEntryInput } from "@lib/validation";
+import type { DateRangeFilter, Timesheet, TimesheetEntry, TimesheetStatus, User } from "@/types";
 
 export const timesheetStorageKey = "timesheets-store:v1";
 
@@ -98,21 +100,8 @@ export function clearTimesheetsStore() {
   getLocalStorage()?.removeItem(timesheetStorageKey);
 }
 
-export function mergeTimesheetsFromServer(
-  serverTimesheets: Timesheet[],
-  cachedTimesheets: Timesheet[],
-) {
-  const mergedById = new Map<string, Timesheet>();
-
-  for (const timesheet of cachedTimesheets) {
-    mergedById.set(timesheet.id, timesheet);
-  }
-
-  for (const timesheet of serverTimesheets) {
-    mergedById.set(timesheet.id, timesheet);
-  }
-
-  return Array.from(mergedById.values()).sort((first, second) => {
+function sortTimesheets(timesheets: Timesheet[]) {
+  return [...timesheets].sort((first, second) => {
     if (first.rangeStart === second.rangeStart) {
       return first.weekNumber - second.weekNumber;
     }
@@ -121,9 +110,29 @@ export function mergeTimesheetsFromServer(
   });
 }
 
-export function upsertCachedTimesheet(timesheet: Timesheet, user?: User | null) {
+export function mergeTimesheetsFromServer(
+  serverTimesheets: Timesheet[],
+  cachedTimesheets: Timesheet[],
+) {
+  const mergedById = new Map<string, Timesheet>();
+
+  for (const timesheet of serverTimesheets) {
+    mergedById.set(timesheet.id, timesheet);
+  }
+
+  for (const timesheet of cachedTimesheets) {
+    mergedById.set(timesheet.id, timesheet);
+  }
+
+  return sortTimesheets(Array.from(mergedById.values()));
+}
+
+export function upsertCachedTimesheet(timesheet: Timesheet, user?: User | null, options: { overwrite?: boolean } = {}) {
   const current = readTimesheetsStore();
-  const nextTimesheets = mergeTimesheetsFromServer([timesheet], current?.timesheets ?? []);
+  const cachedTimesheets = current?.timesheets ?? [];
+  const nextTimesheets = options.overwrite
+    ? sortTimesheets([...cachedTimesheets.filter((item) => item.id !== timesheet.id), timesheet])
+    : mergeTimesheetsFromServer([timesheet], cachedTimesheets);
 
   writeTimesheetsStore({
     user: user ?? current?.user ?? null,
@@ -133,6 +142,78 @@ export function upsertCachedTimesheet(timesheet: Timesheet, user?: User | null) 
 
 export function getCachedTimesheet(id: string) {
   return readTimesheetsStore()?.timesheets.find((timesheet) => timesheet.id === id) ?? null;
+}
+
+function createEntryId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `entry-${crypto.randomUUID()}`;
+  }
+
+  return `entry-${Date.now()}`;
+}
+
+export function createCachedEntry(timesheet: Timesheet, entry: TimesheetEntryInput, user?: User | null) {
+  assertTimesheetHoursLimit(timesheet.entries, entry.hours);
+
+  const nextEntry: TimesheetEntry = {
+    ...entry,
+    id: createEntryId(),
+    taskName: entry.description,
+  };
+  const updated = deriveTimesheet({
+    ...timesheet,
+    entries: [...timesheet.entries, nextEntry],
+  });
+
+  upsertCachedTimesheet(updated, user, { overwrite: true });
+  return updated;
+}
+
+export function updateCachedEntry(
+  timesheet: Timesheet,
+  entryId: TimesheetEntry["id"],
+  entry: TimesheetEntryInput,
+  user?: User | null,
+) {
+  const entryIndex = timesheet.entries.findIndex((item) => item.id === entryId);
+
+  if (entryIndex < 0) {
+    return null;
+  }
+
+  assertTimesheetHoursLimit(timesheet.entries, entry.hours, { excludeEntryId: entryId });
+
+  const updated = deriveTimesheet({
+    ...timesheet,
+    entries: timesheet.entries.map((item, currentIndex) =>
+      currentIndex === entryIndex
+        ? {
+            ...item,
+            ...entry,
+            taskName: entry.description,
+          }
+        : item,
+    ),
+  });
+
+  upsertCachedTimesheet(updated, user, { overwrite: true });
+  return updated;
+}
+
+export function deleteCachedEntry(timesheet: Timesheet, entryId: TimesheetEntry["id"], user?: User | null) {
+  const nextEntries = timesheet.entries.filter((entry) => entry.id !== entryId);
+
+  if (nextEntries.length === timesheet.entries.length) {
+    return null;
+  }
+
+  const updated = deriveTimesheet({
+    ...timesheet,
+    entries: nextEntries,
+  });
+
+  upsertCachedTimesheet(updated, user, { overwrite: true });
+  return updated;
 }
 
 export function filterCachedTimesheets(

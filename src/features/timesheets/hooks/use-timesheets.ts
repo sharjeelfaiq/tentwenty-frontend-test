@@ -91,11 +91,15 @@ export function useTimesheets(initialResponse?: TimesheetsResponse) {
           response.timesheets,
           cachedStore?.timesheets ?? [],
         );
+        const filteredTimesheets = filterCachedTimesheets(mergedTimesheets, {
+          range,
+          status,
+        });
         writeTimesheetsStore({
           user: response.user,
           timesheets: mergedTimesheets,
         });
-        setRawTimesheets(response.timesheets);
+        setRawTimesheets(filteredTimesheets);
         setUser(response.user);
       } catch (loadError) {
         if (requestId !== requestIdRef.current) {
@@ -119,16 +123,34 @@ export function useTimesheets(initialResponse?: TimesheetsResponse) {
   useEffect(() => {
     const cachedStore = readTimesheetsStore();
 
+    if (!cachedStore && initialResponse) {
+      writeTimesheetsStore({
+        user: initialResponse.user,
+        timesheets: initialResponse.timesheets,
+      });
+      return;
+    }
+
     if (!cachedStore) {
       return;
     }
 
-    const cachedTimesheets = filterCachedTimesheets(cachedStore.timesheets, {
+    const mergedTimesheets = initialResponse
+      ? mergeTimesheetsFromServer(initialResponse.timesheets, cachedStore.timesheets)
+      : cachedStore.timesheets;
+    const cachedTimesheets = filterCachedTimesheets(mergedTimesheets, {
       range,
       status,
     });
 
     queueMicrotask(() => {
+      if (initialResponse) {
+        writeTimesheetsStore({
+          user: cachedStore.user ?? initialResponse.user,
+          timesheets: mergedTimesheets,
+        });
+      }
+
       if (cachedTimesheets.length > 0) {
         setRawTimesheets(cachedTimesheets);
       }
@@ -137,7 +159,7 @@ export function useTimesheets(initialResponse?: TimesheetsResponse) {
         setUser(cachedStore.user);
       }
     });
-  }, [range, status]);
+  }, [initialResponse, range, status]);
 
   useEffect(() => {
     const showLoading = hasLoadedFromEffectRef.current || !initialResponse;

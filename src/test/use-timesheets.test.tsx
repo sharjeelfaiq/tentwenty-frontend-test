@@ -182,7 +182,7 @@ describe("useTimesheets", () => {
     expect(cachedStore?.user?.id).toBe("user-1");
   });
 
-  it("server data overrides stale cached data in localStorage", async () => {
+  it("cached data overrides stale server data in localStorage and dashboard state", async () => {
     writeTimesheetsStore({
       user: null,
       timesheets: [
@@ -194,8 +194,9 @@ describe("useTimesheets", () => {
       ],
     });
 
-    renderHook(() => useTimesheets());
+    const { result } = renderHook(() => useTimesheets());
 
-    await waitFor(() => expect(readTimesheetsStore()?.timesheets[0].totalHours).toBe(timesheets[0].totalHours));
+    await waitFor(() => expect(result.current.rawTimesheets[0].totalHours).toBe(1));
+    expect(readTimesheetsStore()?.timesheets[0].totalHours).toBe(1);
   });
 });

@@ -1,18 +1,20 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { ApiError } from "@lib/api";
-import { validateTimesheetEntryInput } from "@lib/validation";
+import { TimesheetHourLimitError, validateTimesheetEntryInput } from "@lib/validation";
 import {
-  createTimesheetEntry,
-  deleteTimesheetEntry,
   getTimesheetDetail,
   type TimesheetDetailResponse,
-  updateTimesheetEntry,
 } from "@features/timesheets/services/timesheet-service";
-import { getCachedTimesheet, upsertCachedTimesheet } from "@features/timesheets/services/timesheet-storage";
+import {
+  createCachedEntry,
+  deleteCachedEntry,
+  getCachedTimesheet,
+  updateCachedEntry,
+  upsertCachedTimesheet,
+} from "@features/timesheets/services/timesheet-storage";
 import type {
   EntryModalMode,
   FieldErrors,
@@ -41,7 +43,6 @@ const initialFormState: EntryFormState = {
 };
 
 export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetailResponse) {
-  const router = useRouter();
   const [timesheet, setTimesheet] = useState<Timesheet | null>(initialResponse?.timesheet ?? null);
   const [user, setUser] = useState<User | null>(initialResponse?.user ?? null);
   const [openMenuEntryId, setOpenMenuEntryId] = useState("");
@@ -59,12 +60,18 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
   useEffect(() => {
     const cachedTimesheet = getCachedTimesheet(id);
 
+    if (!cachedTimesheet && initialResponse?.timesheet.id === id) {
+      upsertCachedTimesheet(initialResponse.timesheet, initialResponse.user);
+      return;
+    }
+
     if (cachedTimesheet) {
       queueMicrotask(() => {
         setTimesheet(cachedTimesheet);
+        setUser((current) => current ?? initialResponse?.user ?? null);
       });
     }
-  }, [id]);
+  }, [id, initialResponse]);
 
   useEffect(() => {
     let active = true;
@@ -86,9 +93,9 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
           return;
         }
 
-        setTimesheet(response.timesheet);
         setUser(response.user);
         upsertCachedTimesheet(response.timesheet, response.user);
+        setTimesheet(getCachedTimesheet(id) ?? response.timesheet);
       } catch (loadError) {
         if (!active) {
           return;
@@ -157,17 +164,28 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
     }
 
     try {
-      const response =
-        modalMode === "edit" && editingEntryId
-          ? await updateTimesheetEntry(id, { ...validation.data, entryId: editingEntryId })
-          : await createTimesheetEntry(id, validation.data);
+      if (!timesheet) {
+        setSubmitError("Unable to save this entry.");
+        return;
+      }
 
-      setTimesheet(response.timesheet);
-      upsertCachedTimesheet(response.timesheet, response.user);
-      router.refresh();
+      const updated =
+        modalMode === "edit" && editingEntryId
+          ? updateCachedEntry(timesheet, editingEntryId, validation.data, user)
+          : createCachedEntry(timesheet, validation.data, user);
+
+      if (!updated) {
+        setSubmitError("Entry not found.");
+        return;
+      }
+
+      setTimesheet(updated);
       closeModal();
     } catch (submissionError) {
-      if (submissionError instanceof ApiError) {
+      if (submissionError instanceof TimesheetHourLimitError) {
+        setFieldErrors({ hours: "Timesheet total cannot exceed 40 hours." });
+        setSubmitError(submissionError.message);
+      } else if (submissionError instanceof ApiError) {
         setFieldErrors((submissionError.fieldErrors ?? {}) as FieldErrors<TimesheetEntryField>);
         setSubmitError(submissionError.message);
       } else {
@@ -185,10 +203,21 @@ export function useTimesheetDetail(id: string, initialResponse?: TimesheetDetail
     }
 
     try {
-      const response = await deleteTimesheetEntry(id, entryId);
-      setTimesheet(response.timesheet);
-      upsertCachedTimesheet(response.timesheet, response.user);
-      router.refresh();
+      if (!timesheet) {
+        setActionError("Unable to delete this entry.");
+        setOpenMenuEntryId("");
+        return;
+      }
+
+      const updated = deleteCachedEntry(timesheet, entryId, user);
+
+      if (!updated) {
+        setActionError("Entry not found.");
+        setOpenMenuEntryId("");
+        return;
+      }
+
+      setTimesheet(updated);
       setOpenMenuEntryId("");
     } catch (submissionError) {
       setActionError(submissionError instanceof ApiError ? submissionError.message : "Unable to delete this entry.");
